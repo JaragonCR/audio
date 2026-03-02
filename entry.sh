@@ -108,6 +108,12 @@ function pa_set_default_output () {
   esac
 
   if [[ -n "$PA_SINK" ]]; then
+    # Verify sink exists in PipeWire before writing - sink names differ between PulseAudio and PipeWire
+    ACTUAL_SINK=$(pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -F "$PA_SINK" | head -1)
+    if [[ -z "$ACTUAL_SINK" ]]; then
+      echo "WARNING: Sink $PA_SINK not found, using PipeWire auto-detected sink"
+      PA_SINK=$(pactl list short sinks 2>/dev/null | grep -v "null-sink\|monitor\|balena-sound\|snapcast" | awk 'NR==1{print $2}')
+    fi
     echo "$PA_SINK" > /run/pulse/pulseaudio.sink
     echo -e "\nset-default-sink $PA_SINK" >> /etc/pulse/default.pa.d/00-audioblock.pa
   fi
